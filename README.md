@@ -5,6 +5,10 @@ Chrome DevTools extension for inspecting incoming and outgoing Microsoft Teams b
 > [!IMPORTANT]
 > This project is an independent tool and is not affiliated with, endorsed by, sponsored by, or supported by Microsoft.
 
+## Privacy
+
+See [PRIVACY.md](./PRIVACY.md).
+
 ## Development
 
 ```bash
