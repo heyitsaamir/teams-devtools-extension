@@ -116,6 +116,3 @@ Useful scripts:
 | `npm run zip` | Builds and creates the publishable zip |
 | `npm run clean` | Removes build output |
 
-## Notes
-
-This is a debugging tool for developers. Be careful when inspecting real tenant or customer traffic, and avoid sharing screenshots or payloads that contain sensitive data.
