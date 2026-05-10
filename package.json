@@ -17,7 +17,7 @@
     "dev": "vite build --watch",
     "build": "tsc -b && vite build",
     "clean": "rm -rf dist node_modules/.tmp",
-    "zip": "npm run build && cd dist && zip -r ../teams-devtools-extension.zip ."
+    "zip": "npm run build && cd dist && zip -r ../teams-devtools-extension.zip . -x '**/.DS_Store' -x '.DS_Store'"
   },
   "keywords": [
     "microsoft-teams",
