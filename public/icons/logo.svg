@@ -1,0 +1,43 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="76" y1="64" x2="436" y2="448" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7B61FF"/>
+      <stop offset="0.55" stop-color="#5B5FC7"/>
+      <stop offset="1" stop-color="#3B2D91"/>
+    </linearGradient>
+    <linearGradient id="card" x1="104" y1="140" x2="330" y2="384" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6B6FE3"/>
+      <stop offset="1" stop-color="#464BA8"/>
+    </linearGradient>
+    <filter id="shadow" x="26" y="38" width="460" height="450" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#1B174A" flood-opacity="0.28"/>
+    </filter>
+    <filter id="glassShadow" x="250" y="236" width="224" height="224" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#15133A" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="#F7F7FF"/>
+
+  <g filter="url(#shadow)">
+    <rect x="64" y="72" width="384" height="368" rx="92" fill="url(#bg)"/>
+
+    <!-- abstract people/chat shapes, Teams-ish but original -->
+    <circle cx="332" cy="156" r="48" fill="#B9B7FF" opacity="0.95"/>
+    <circle cx="378" cy="242" r="38" fill="#D8D6FF" opacity="0.9"/>
+    <path d="M262 246C262 208.445 292.445 178 330 178H352C389.555 178 420 208.445 420 246V308C420 323.464 407.464 336 392 336H290C274.536 336 262 323.464 262 308V246Z" fill="#8C8EF0" opacity="0.9"/>
+
+    <!-- front tile -->
+    <rect x="92" y="148" width="240" height="224" rx="54" fill="url(#card)"/>
+    <path d="M152 207H272V245H231V322H192V245H152V207Z" fill="white"/>
+    <path d="M126 357C149 386 183 404 224 404C265 404 299 386 322 357" stroke="#D8D6FF" stroke-width="20" stroke-linecap="round" opacity="0.75"/>
+  </g>
+
+  <!-- magnifying glass -->
+  <g filter="url(#glassShadow)">
+    <circle cx="348" cy="332" r="66" fill="white" fill-opacity="0.82" stroke="#17172F" stroke-width="24"/>
+    <circle cx="348" cy="332" r="38" fill="#8EE8FF" fill-opacity="0.34"/>
+    <path d="M394 378L450 434" stroke="#17172F" stroke-width="30" stroke-linecap="round"/>
+    <path d="M320 306C333 293 356 290 374 302" stroke="white" stroke-width="12" stroke-linecap="round" opacity="0.85"/>
+  </g>
+</svg>
