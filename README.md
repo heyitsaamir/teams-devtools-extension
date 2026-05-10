@@ -2,6 +2,9 @@
 
 Chrome DevTools extension for inspecting incoming and outgoing Microsoft Teams bot traffic.
 
+> [!IMPORTANT]
+> This project is an independent tool and is not affiliated with, endorsed by, sponsored by, or supported by Microsoft.
+
 ## Development
 
 ```bash
