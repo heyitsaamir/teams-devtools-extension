@@ -1,0 +1,69 @@
+name: Build extension
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/**
+      - manifest.json
+      - package.json
+      - package-lock.json
+      - public/**
+      - src/**
+      - tsconfig*.json
+      - version.json
+      - vite.config.ts
+  pull_request:
+    paths:
+      - .github/workflows/**
+      - manifest.json
+      - package.json
+      - package-lock.json
+      - public/**
+      - src/**
+      - tsconfig*.json
+      - version.json
+      - vite.config.ts
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and package
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve version with nbgv
+        id: version
+        run: |
+          VERSION=$(npx nbgv get-version -v SimpleVersion)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "EXTENSION_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Building extension version $VERSION"
+
+      - name: Build zip
+        run: npm run zip
+
+      - name: Upload zip artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: teams-devtools-extension-${{ steps.version.outputs.version }}
+          path: teams-devtools-extension.zip
+          if-no-files-found: error

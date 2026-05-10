@@ -1,0 +1,72 @@
+name: Release extension
+
+on:
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to release, e.g. 0.1.1
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish GitHub release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve release version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+            TAG="v$VERSION"
+          else
+            TAG="${GITHUB_REF_NAME}"
+            VERSION="${TAG#v}"
+          fi
+
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Version must look like 0.1.1. Received: $VERSION" >&2
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "EXTENSION_VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Releasing $TAG"
+
+      - name: Build zip
+        run: npm run zip
+
+      - name: Rename artifact
+        run: cp teams-devtools-extension.zip "teams-devtools-extension-${{ steps.version.outputs.version }}.zip"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.tag }}" \
+            "teams-devtools-extension-${{ steps.version.outputs.version }}.zip" \
+            --title "Teams DevTools Extension ${{ steps.version.outputs.version }}" \
+            --notes "Built extension package for version ${{ steps.version.outputs.version }}. Upload the zip to Chrome Web Store or Microsoft Edge Add-ons." \
+            --latest

@@ -1,6 +1,6 @@
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
-import { copyFileSync, cpSync } from 'fs';
+import { cpSync, readFileSync, writeFileSync } from 'fs';
 import { defineConfig, type Plugin } from 'vite';
 
 /**
@@ -10,9 +10,21 @@ function copyExtensionAssets(): Plugin {
   return {
     name: 'copy-extension-assets',
     closeBundle() {
-      copyFileSync(
-        resolve(__dirname, 'manifest.json'),
-        resolve(__dirname, 'dist/manifest.json')
+      const manifestPath = resolve(__dirname, 'manifest.json');
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+      const extensionVersion = process.env.EXTENSION_VERSION?.trim();
+
+      if (extensionVersion) {
+        if (!/^\d+\.\d+\.\d+(?:\.\d+)?$/.test(extensionVersion)) {
+          throw new Error(`EXTENSION_VERSION must be a Chrome-compatible version. Received: ${extensionVersion}`);
+        }
+
+        manifest.version = extensionVersion;
+      }
+
+      writeFileSync(
+        resolve(__dirname, 'dist/manifest.json'),
+        `${JSON.stringify(manifest, null, 2)}\n`
       );
       cpSync(
         resolve(__dirname, 'public/icons'),
