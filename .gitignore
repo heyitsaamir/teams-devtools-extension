@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.zip
+.DS_Store
+.env
+.env.*
+!.env.example
+npm-debug.log*
+.node_repl_history

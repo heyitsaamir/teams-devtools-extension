@@ -1,0 +1,1 @@
+// Minimal background service worker.
