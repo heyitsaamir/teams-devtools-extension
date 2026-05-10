@@ -23,7 +23,7 @@ interface RawFrame {
   timestamp: number;
 }
 
-function processRawFrame(raw: RawFrame, botId: string): WsFrame | null {
+function processRawFrame(raw: RawFrame, botId?: string): WsFrame | null {
   const rawData = raw.data;
   if (!rawData) return null;
 
@@ -51,8 +51,9 @@ function processRawFrame(raw: RawFrame, botId: string): WsFrame | null {
     try { parsed = JSON.parse(rawData); } catch { /* not JSON */ }
   }
 
+  const trimmedBotId = botId?.trim();
   const candidate = { parsed, rawData, envelope, url: raw.url };
-  const matchedField = matchesBotId(candidate, botId);
+  const matchedField = trimmedBotId ? matchesBotId(candidate, trimmedBotId) : 'all-traffic';
   if (!matchedField) return null;
 
   return {
@@ -112,7 +113,6 @@ export function App() {
 
     const poll = async () => {
       const botId = useConnectionStore.getState().botId;
-      if (!botId) return;
 
       const rawFrames = await drainFrames();
       if (rawFrames.length === 0) return;

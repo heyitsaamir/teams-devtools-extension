@@ -6,7 +6,6 @@ export function Toolbar() {
   const clear = useFrameStore((s) => s.clear);
 
   const handleToggleCapture = () => {
-    if (!isCapturing && !botId.trim()) return;
     setCapturing(!isCapturing);
   };
 
@@ -23,7 +22,7 @@ export function Toolbar() {
             id="bot-id-input"
             className="bot-id-input"
             type="text"
-            placeholder="Enter bot client ID (Azure AD app ID)..."
+            placeholder="Optional bot client ID filter..."
             value={botId}
             onChange={(e) => setBotId(e.target.value)}
             disabled={isCapturing}
@@ -40,7 +39,7 @@ export function Toolbar() {
         <button
           className={`capture-btn ${isCapturing ? 'capturing' : ''}`}
           onClick={handleToggleCapture}
-          disabled={!isCapturing && !botId.trim()}
+          disabled={false}
         >
           <span className={`status-dot ${isCapturing ? 'active' : ''}`} />
           {isCapturing ? 'Stop' : 'Capture'}
