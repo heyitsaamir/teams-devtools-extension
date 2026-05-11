@@ -594,6 +594,32 @@ body {
   opacity: 0.5;
 }
 
+.empty-capture-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  margin-bottom: 18px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 120, 212, 0.22);
+}
+
+.empty-capture-btn:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.empty-capture-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
 .empty-state h2 {
   font-size: 16px;
   font-weight: 600;

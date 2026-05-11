@@ -1,16 +1,18 @@
 import { useConnectionStore } from '../stores/ConnectionStore';
 
 export function EmptyState() {
-  const { botId, isCapturing } = useConnectionStore();
+  const { botId, isCapturing, setCapturing } = useConnectionStore();
 
   if (!isCapturing) {
     return (
       <div className="empty-state">
-        <div className="empty-state-icon">&#9654;</div>
-        <h2>Ready to capture</h2>
+        <button className="empty-capture-btn" onClick={() => setCapturing(true)}>
+          <span className="empty-capture-icon">&#9654;</span>
+          Capture
+        </button>
+        <h2>Ready to monitor Teams traffic</h2>
         <p>
-          Click <strong>Capture</strong> to start monitoring Teams traffic.
-          {botId ? <> Filtering for <code>{botId}</code>.</> : ' Add a bot client ID above if you want to filter.'}
+          {botId ? <>Filtering for <code>{botId}</code>.</> : 'Add a bot client ID above if you want to filter first.'}
         </p>
       </div>
     );
