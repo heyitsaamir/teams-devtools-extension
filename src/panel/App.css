@@ -198,6 +198,85 @@ body {
   white-space: nowrap;
 }
 
+/* Bot Strip */
+.bot-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  min-height: 31px;
+  overflow: hidden;
+}
+
+.bot-strip-label {
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.bot-chip-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.bot-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 180px;
+  padding: 3px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bot-chip:hover {
+  background: var(--bg-hover);
+}
+
+.bot-chip.active {
+  border-color: var(--accent);
+  background: var(--bg-selected);
+}
+
+.bot-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bot-chip-count {
+  min-width: 16px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.bot-strip-empty,
+.bot-filter-status {
+  color: var(--text-muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.bot-filter-status {
+  margin-left: auto;
+}
+
 /* Main Content */
 .main-content {
   display: flex;

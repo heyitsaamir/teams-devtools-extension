@@ -8,12 +8,12 @@ import {
 import { filterFrames } from './FilterBar';
 
 export function FrameList() {
-  const { frames, selectedId, directionFilter, resourceTypeFilter, searchText, setSelectedId } = useFrameStore();
+  const { frames, selectedId, directionFilter, resourceTypeFilter, searchText, botFilter, setSelectedId } = useFrameStore();
   const listRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
   const prevFrameCount = useRef(frames.length);
 
-  const filtered = filterFrames(frames, directionFilter, resourceTypeFilter, searchText);
+  const filtered = filterFrames(frames, directionFilter, resourceTypeFilter, searchText, botFilter);
 
   useEffect(() => {
     if (frames.length > prevFrameCount.current && shouldAutoScroll.current && listRef.current) {

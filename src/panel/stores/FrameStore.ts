@@ -32,6 +32,7 @@ export interface FrameStore {
   directionFilter: DirectionFilter;
   resourceTypeFilter: string;
   searchText: string;
+  botFilter: string;
   setSelectedId: (id: string | null) => void;
   addFrame: (frame: WsFrame) => void;
   addFrames: (frames: WsFrame[]) => void;
@@ -39,6 +40,7 @@ export interface FrameStore {
   setDirectionFilter: (filter: DirectionFilter) => void;
   setResourceTypeFilter: (filter: string) => void;
   setSearchText: (text: string) => void;
+  setBotFilter: (botId: string) => void;
 }
 
 let frameCounter = 0;
@@ -231,6 +233,35 @@ function extractGraphQLMessage(parsed: Record<string, unknown>): {
   }
 }
 
+function normalizeBotId(from: string): string {
+  const match = from.match(/28:([^@\s;"'<>]+)/i);
+  return match?.[1] ?? from;
+}
+
+/**
+ * Extract bot identity from a frame, when the frame is from a bot.
+ */
+export function extractBotInfo(frame: WsFrame): { id: string; name: string } | null {
+  const info = extractFrameInfo(frame);
+  if (!info.isFromBot) return null;
+
+  let from = '';
+
+  if (frame.parsed?.['type'] === 'graphql') {
+    from = extractGraphQLMessage(frame.parsed)?.from ?? '';
+  } else {
+    const resource = frame.parsed?.['resource'] as Record<string, unknown> | undefined;
+    from = (resource?.['from'] as string | undefined) ?? '';
+  }
+
+  const id = from ? normalizeBotId(from) : info.senderName;
+  const name = info.senderName || id || 'Unknown bot';
+
+  if (!id && !name) return null;
+
+  return { id, name };
+}
+
 /**
  * Extract display info from a parsed frame.
  */
@@ -303,6 +334,7 @@ export const useFrameStore = create<FrameStore>()((set) => ({
   directionFilter: 'all',
   resourceTypeFilter: '',
   searchText: '',
+  botFilter: '',
 
   setSelectedId: (id) => set({ selectedId: id }),
 
@@ -321,4 +353,5 @@ export const useFrameStore = create<FrameStore>()((set) => ({
   setDirectionFilter: (filter) => set({ directionFilter: filter }),
   setResourceTypeFilter: (filter) => set({ resourceTypeFilter: filter }),
   setSearchText: (text) => set({ searchText: text }),
+  setBotFilter: (botId) => set({ botFilter: botId }),
 }));

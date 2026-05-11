@@ -10,6 +10,7 @@ import {
 } from './stores/FrameStore';
 import { Toolbar } from './components/Toolbar';
 import { FilterBar } from './components/FilterBar';
+import { BotStrip } from './components/BotStrip';
 import { FrameList } from './components/FrameList';
 import { FrameDetail } from './components/FrameDetail';
 import { EmptyState } from './components/EmptyState';
@@ -163,6 +164,7 @@ export function App() {
     <div className="app">
       <Toolbar />
       {isCapturing && <FilterBar />}
+      {isCapturing && <BotStrip />}
       {!hasFrames ? (
         <EmptyState />
       ) : (

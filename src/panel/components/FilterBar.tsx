@@ -1,13 +1,13 @@
-import { useFrameStore, extractFrameInfo, type DirectionFilter, type WsFrame } from '../stores/FrameStore';
+import { useFrameStore, extractFrameInfo, matchesBotId, type DirectionFilter, type WsFrame } from '../stores/FrameStore';
 
 export function FilterBar() {
-  const { frames, directionFilter, resourceTypeFilter, searchText, setDirectionFilter, setResourceTypeFilter, setSearchText } =
+  const { frames, directionFilter, resourceTypeFilter, searchText, botFilter, setDirectionFilter, setResourceTypeFilter, setSearchText } =
     useFrameStore();
 
   // Collect unique resource types from captured frames
   const resourceTypes = [...new Set(frames.map((f) => extractFrameInfo(f).resourceType))].sort();
 
-  const filteredCount = filterFrames(frames, directionFilter, resourceTypeFilter, searchText).length;
+  const filteredCount = filterFrames(frames, directionFilter, resourceTypeFilter, searchText, botFilter).length;
 
   return (
     <div className="filter-bar">
@@ -46,7 +46,8 @@ export function filterFrames(
   frames: WsFrame[],
   directionFilter: string,
   resourceTypeFilter: string,
-  searchText: string
+  searchText: string,
+  botFilter = ''
 ): WsFrame[] {
   return frames.filter((f) => {
     if (directionFilter !== 'all') {
@@ -57,6 +58,9 @@ export function filterFrames(
     if (resourceTypeFilter) {
       const info = extractFrameInfo(f);
       if (info.resourceType !== resourceTypeFilter) return false;
+    }
+    if (botFilter && !matchesBotId({ parsed: f.parsed, rawData: f.rawData, envelope: f.envelope, url: f.url }, botFilter)) {
+      return false;
     }
     if (searchText) {
       const lower = searchText.toLowerCase();
