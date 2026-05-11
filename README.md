@@ -94,35 +94,6 @@ The extension is configured for:
 - `https://teams.cloud.microsoft/*`
 - `https://*.teams.cloud.microsoft/*`
 
-## Package for publishing
-
-```bash
-npm run zip
-```
-
-This creates:
-
-```text
-teams-devtools-extension.zip
-```
-
-Upload that zip to the Chrome Web Store or Microsoft Edge Add-ons dashboard.
-
-## CI and releases
-
-GitHub Actions builds the extension when code or extension assets change. Build artifacts are attached to the workflow run.
-
-To create a GitHub release and release zip, either:
-
-```bash
-git tag v0.1.1
-git push origin v0.1.1
-```
-
-or run the **Release extension** workflow manually from GitHub and provide a version like `0.1.1`.
-
-Release builds stamp `dist/manifest.json` with the release version before creating the zip.
-
 ## Privacy
 
 The extension can inspect Teams page traffic that is visible to the browser so it can show bot messages in the DevTools panel. Captured traffic is not sent to external servers.
