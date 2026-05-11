@@ -65,7 +65,7 @@ npm install
 npm run build
 ```
 
-Then load the generated `dist/` folder with **Load unpacked** from `edge://extensions` or `chrome://extensions`.
+Then load the generated `dist/` folder with **Load unpacked** from `edge://extensions` or `chrome://extensions` (on Edge, ensure `Developer Mode` is enabled).
 
 > Extension scripts are injected when the Teams page loads. If the panel looks empty, reload the extension, refresh the Teams tab, reopen DevTools, and click **Capture**.
 
