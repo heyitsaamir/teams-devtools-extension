@@ -407,6 +407,61 @@ export function extractFrameInfo(frame: WsFrame): {
   return { resourceType, messageType, senderName, content, isFromBot, messageId };
 }
 
+function getFrameClientMessageId(frame: WsFrame): string {
+  const parsed = frame.parsed;
+  if (!parsed) return '';
+
+  const direct = parsed['clientmessageid'] || parsed['clientMessageId'];
+  if (typeof direct === 'string') return direct;
+
+  const resource = parsed['resource'] as Record<string, unknown> | undefined;
+  const resourceId = resource?.['clientmessageid'] || resource?.['clientMessageId'];
+  if (typeof resourceId === 'string') return resourceId;
+
+  if (parsed['type'] === 'graphql') {
+    const msg = extractGraphQLMessage(parsed);
+    if (msg?.messageId) {
+      // extractGraphQLMessage prefers the server id, so inspect the common
+      // GraphQL message locations for the client id directly.
+      const response = parsed['response'] as Record<string, unknown> | undefined;
+      const data = response?.['data'] as Record<string, unknown> | undefined;
+      const events = data?.['chatServiceBatchEvent'] as Array<Record<string, unknown>> | undefined;
+      const message = events?.[0]?.['message'] as Record<string, unknown> | undefined;
+      const clientId = message?.['clientMessageId'];
+      if (typeof clientId === 'string') return clientId;
+    }
+  }
+
+  return '';
+}
+
+function isOutgoingSendMessage(frame: WsFrame): boolean {
+  return frame.sourceType === 'fetch-request' && extractFrameInfo(frame).resourceType === 'SendMessage';
+}
+
+function isCurrentUserSubscriptionEcho(frame: WsFrame): boolean {
+  if (frame.sourceType !== 'worker-message') return false;
+  const info = extractFrameInfo(frame);
+  return !info.isFromBot && (info.resourceType === 'NewMessage' || info.resourceType === 'MessageUpdate');
+}
+
+function removeUserSubscriptionEchoes(frames: WsFrame[]): WsFrame[] {
+  const outgoingClientIds = new Set(
+    frames
+      .filter(isOutgoingSendMessage)
+      .map(getFrameClientMessageId)
+      .filter(Boolean)
+  );
+
+  if (outgoingClientIds.size === 0) return frames;
+
+  return frames.filter((frame) => {
+    if (!isCurrentUserSubscriptionEcho(frame)) return true;
+    const clientMessageId = getFrameClientMessageId(frame);
+    return !clientMessageId || !outgoingClientIds.has(clientMessageId);
+  });
+}
+
 export const useFrameStore = create<FrameStore>()((set) => ({
   frames: [],
   selectedId: null,
@@ -421,12 +476,12 @@ export const useFrameStore = create<FrameStore>()((set) => ({
 
   addFrame: (frame) =>
     set((state) => ({
-      frames: [...state.frames, frame],
+      frames: removeUserSubscriptionEchoes([...state.frames, frame]),
     })),
 
   addFrames: (frames) =>
     set((state) => ({
-      frames: [...state.frames, ...frames],
+      frames: removeUserSubscriptionEchoes([...state.frames, ...frames]),
     })),
 
   clear: () => set({ frames: [], selectedId: null, compareIds: [] }),
