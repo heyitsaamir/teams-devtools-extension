@@ -89,7 +89,7 @@ function shouldCaptureDevtoolsNetworkRequest(url: string, method: string, bodyTe
   return /\/api\/chatsvc\/.*\/(messages|invoke)(?:[/?#]|$)/.test(url) || looksLikeInvokeBody(bodyText);
 }
 
-function headersToRecord(headers: chrome.devtools.network.Request['request']['headers']): Record<string, string> {
+function headersToRecord(headers: Array<{ name: string; value: string }> | undefined): Record<string, string> {
   const record: Record<string, string> = {};
   for (const header of headers ?? []) {
     record[header.name] = header.value;
@@ -168,8 +168,8 @@ export function App() {
   // Track seen message IDs to deduplicate across subscription channels
   const seenMessages = useRef(new Set<string>());
 
-  // Capture HTTP invokes from the DevTools Network stack. Some Teams invokes are
-  // not visible to injected fetch/XHR hooks, but they do appear in Network.
+  // Capture HTTP bot traffic from the DevTools Network stack. Some Teams
+  // requests are not visible to injected page hooks, but they do appear here.
   useEffect(() => {
     if (!isCapturing) {
       seenNetworkRequests.current.clear();
@@ -183,7 +183,7 @@ export function App() {
         const bodyText = request.request.postData?.text ?? null;
         if (!shouldCaptureDevtoolsNetworkRequest(url, method, bodyText)) return;
 
-        const requestKey = `${method}:${url}:${bodyText ?? ''}`;
+        const requestKey = `${request.startedDateTime}:${method}:${url}`;
         if (seenNetworkRequests.current.has(requestKey)) return;
         seenNetworkRequests.current.add(requestKey);
 
