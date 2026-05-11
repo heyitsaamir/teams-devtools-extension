@@ -352,6 +352,22 @@ body {
   background: var(--bg-selected);
 }
 
+.frame-row.compare-selected:not(.selected) {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.frame-row.child-row {
+  border-bottom-color: color-mix(in srgb, var(--border-color) 65%, transparent);
+}
+
+.frame-row.child-row .col-resource-type {
+  color: var(--text-secondary);
+}
+
+.frame-row.parent-row {
+  border-top: 1px solid var(--border-color);
+}
 
 .frame-row td {
   padding: 3px 8px;
@@ -372,6 +388,29 @@ body {
   padding: 1px 4px;
   border-radius: 2px;
   background: var(--bg-secondary);
+}
+
+.tree-branch {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.tree-indent {
+  display: inline-block;
+  width: 14px;
+  height: 1px;
+  margin-right: 4px;
+  vertical-align: middle;
+  background: var(--border-color);
+}
+
+.group-count {
+  margin-left: 5px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-size: 9px;
 }
 
 .dir-arrow {
@@ -513,6 +552,12 @@ body {
 }
 
 .view-toggle button:hover { background: var(--bg-hover); }
+.view-toggle button:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.view-toggle button:disabled:hover { background: var(--bg-primary); }
 .view-toggle button.active {
   background: var(--accent);
   color: white;
@@ -531,6 +576,80 @@ body {
   white-space: pre-wrap;
   word-break: break-all;
   color: var(--text-primary);
+}
+
+.diff-view {
+  height: 100%;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+}
+
+.diff-header-row,
+.diff-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.diff-header-row {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.diff-header-cell {
+  padding: 5px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.diff-header-cell:first-child,
+.diff-cell:first-child {
+  border-right: 1px solid var(--border-color);
+}
+
+.diff-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+}
+
+.diff-cell {
+  min-height: 18px;
+  margin: 0;
+  padding: 2px 8px;
+  overflow: visible;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.diff-added .diff-right {
+  background: rgba(16, 124, 16, 0.16);
+}
+
+.diff-removed .diff-left {
+  background: rgba(209, 52, 56, 0.16);
+}
+
+.diff-same .diff-cell {
+  color: var(--text-secondary);
 }
 
 /* JSON Tree */

@@ -29,11 +29,13 @@ export type DirectionFilter = 'all' | 'incoming' | 'outgoing';
 export interface FrameStore {
   frames: WsFrame[];
   selectedId: string | null;
+  compareIds: string[];
   directionFilter: DirectionFilter;
   resourceTypeFilter: string;
   searchText: string;
   botFilter: string;
   setSelectedId: (id: string | null) => void;
+  setCompareIds: (ids: string[]) => void;
   addFrame: (frame: WsFrame) => void;
   addFrames: (frames: WsFrame[]) => void;
   clear: () => void;
@@ -384,19 +386,22 @@ export function extractFrameInfo(frame: WsFrame): {
   const content = (resource['content'] as string) || '';
   const from = (resource['from'] as string) || '';
   const isFromBot = from.includes('28:');
+  const messageId = (resource['id'] as string) || (resource['clientmessageid'] as string) || '';
 
-  return { resourceType, messageType, senderName, content, isFromBot, messageId: '' };
+  return { resourceType, messageType, senderName, content, isFromBot, messageId };
 }
 
 export const useFrameStore = create<FrameStore>()((set) => ({
   frames: [],
   selectedId: null,
+  compareIds: [],
   directionFilter: 'all',
   resourceTypeFilter: '',
   searchText: '',
   botFilter: '',
 
   setSelectedId: (id) => set({ selectedId: id }),
+  setCompareIds: (ids) => set({ compareIds: ids.slice(0, 2) }),
 
   addFrame: (frame) =>
     set((state) => ({
@@ -408,7 +413,7 @@ export const useFrameStore = create<FrameStore>()((set) => ({
       frames: [...state.frames, ...frames],
     })),
 
-  clear: () => set({ frames: [], selectedId: null }),
+  clear: () => set({ frames: [], selectedId: null, compareIds: [] }),
 
   setDirectionFilter: (filter) => set({ directionFilter: filter }),
   setResourceTypeFilter: (filter) => set({ resourceTypeFilter: filter }),
