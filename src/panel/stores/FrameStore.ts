@@ -204,6 +204,7 @@ function extractGraphQLMessage(parsed: Record<string, unknown>): {
   content: string;
   senderName: string;
   from: string;
+  to: string;
   messageType: string;
   messageId: string;
   subscriptionType: string;
@@ -224,6 +225,7 @@ function extractGraphQLMessage(parsed: Record<string, unknown>): {
       content: (msg['content'] as string) || '',
       senderName: (msg['imDisplayName'] as string) || '',
       from: (msg['from'] as string) || (msg['fromUserId'] as string) || '',
+      to: (msg['to'] as string) || (msg['recipient'] as string) || (msg['recipientId'] as string) || '',
       messageType: (msg['messageType'] as string) || '',
       messageId: (msg['id'] as string) || (msg['clientMessageId'] as string) || '',
       subscriptionType: subscriptionType || requestId.split('-')[0] || 'graphql',
@@ -233,31 +235,89 @@ function extractGraphQLMessage(parsed: Record<string, unknown>): {
   }
 }
 
-function normalizeBotId(from: string): string {
-  const match = from.match(/28:([^@\s;"'<>]+)/i);
-  return match?.[1] ?? from;
+function normalizeBotId(value: string): string {
+  const botPrefixMatch = value.match(/28:([^@\s;"'<>]+)/i);
+  if (botPrefixMatch?.[1]) return botPrefixMatch[1];
+
+  const conversationBotMatch = value.match(/_([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})@/i);
+  if (conversationBotMatch?.[1]) return conversationBotMatch[1];
+
+  return value;
+}
+
+function isBotIdentifier(value: string): boolean {
+  return /28:/i.test(value) || /_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}@/i.test(value);
+}
+
+function findBotIdentifierInObject(obj: unknown, depth: number = 0): string {
+  if (depth > 6 || !obj || typeof obj !== 'object') return '';
+
+  const record = obj as Record<string, unknown>;
+  const likelyKeys = [
+    'to', 'recipient', 'recipientId', 'recipientMri', 'botId', 'botAppId',
+    'conversationId', 'convId', 'conversationLink', 'resourceLink', 'from', 'fromUserId',
+  ];
+
+  for (const key of likelyKeys) {
+    const value = record[key];
+    if (typeof value === 'string' && isBotIdentifier(value)) return value;
+  }
+
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const found = findBotIdentifierInObject(item, depth + 1);
+      if (found) return found;
+    }
+    return '';
+  }
+
+  for (const val of Object.values(record)) {
+    const found = findBotIdentifierInObject(val, depth + 1);
+    if (found) return found;
+  }
+
+  return '';
 }
 
 /**
- * Extract bot identity from a frame, when the frame is from a bot.
+ * Extract bot identity from a frame. This works for both bot-to-user frames
+ * and user-to-bot frames when the payload contains a bot recipient/conversation ID.
  */
 export function extractBotInfo(frame: WsFrame): { id: string; name: string } | null {
   const info = extractFrameInfo(frame);
-  if (!info.isFromBot) return null;
-
-  let from = '';
+  let identifier = '';
+  let name = '';
 
   if (frame.parsed?.['type'] === 'graphql') {
-    from = extractGraphQLMessage(frame.parsed)?.from ?? '';
+    const msg = extractGraphQLMessage(frame.parsed);
+    if (msg?.from && isBotIdentifier(msg.from)) {
+      identifier = msg.from;
+      name = msg.senderName;
+    } else if (msg?.to && isBotIdentifier(msg.to)) {
+      identifier = msg.to;
+    }
   } else {
     const resource = frame.parsed?.['resource'] as Record<string, unknown> | undefined;
-    from = (resource?.['from'] as string | undefined) ?? '';
+    const from = (resource?.['from'] as string | undefined) ?? '';
+    const to = (resource?.['to'] as string | undefined) ?? '';
+
+    if (from && isBotIdentifier(from)) {
+      identifier = from;
+      name = info.senderName;
+    } else if (to && isBotIdentifier(to)) {
+      identifier = to;
+    }
   }
 
-  const id = from ? normalizeBotId(from) : info.senderName;
-  const name = info.senderName || id || 'Unknown bot';
+  identifier ||= findBotIdentifierInObject(frame.parsed);
+  identifier ||= findBotIdentifierInObject(frame.envelope);
+  identifier ||= frame.rawData && isBotIdentifier(frame.rawData) ? frame.rawData : '';
 
-  if (!id && !name) return null;
+  const id = identifier ? normalizeBotId(identifier) : '';
+  name ||= info.isFromBot ? info.senderName : '';
+  name ||= id ? `Bot ${id.slice(0, 8)}` : '';
+
+  if (!id) return null;
 
   return { id, name };
 }
