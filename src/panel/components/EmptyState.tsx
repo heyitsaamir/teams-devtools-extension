@@ -7,9 +7,9 @@ export function EmptyState() {
     return (
       <div className="empty-state">
         <button className="empty-capture-btn" onClick={() => setCapturing(true)} aria-label="Start capture">
-          <span className="empty-capture-icon" />
-          Capture
+          <span className="empty-capture-dot" />
         </button>
+        <div className="empty-capture-label">Capture</div>
         <h2>Ready to monitor Teams traffic</h2>
         <p>
           {botId ? <>Filtering for <code>{botId}</code>.</> : 'Add a bot client ID above if you want to filter first.'}
