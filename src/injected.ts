@@ -11,12 +11,23 @@
   const QUEUE_KEY = '__teamsBotInspectorFrames';
   (window as any)[QUEUE_KEY] = [];
 
-  function pushFrame(type: string, direction: string, data: string | null, url: string) {
+  function pushFrame(type: string, direction: string, data: string | null, url: string, timestamp = Date.now()) {
     try {
       const q = (window as any)[QUEUE_KEY];
-      q.push({ type, direction, data, url, timestamp: Date.now() });
+      q.push({ type, direction, data, url, timestamp });
       if (q.length > 10000) q.splice(0, q.length - 10000);
     } catch { /* ignore */ }
+  }
+
+  function stringifyWireData(data: unknown): string | null {
+    try {
+      if (typeof data === 'string') return data;
+      if (data instanceof ArrayBuffer) return new TextDecoder().decode(data);
+      if (ArrayBuffer.isView(data)) {
+        return new TextDecoder().decode(data as ArrayBufferView<ArrayBuffer>);
+      }
+    } catch { /* ignore */ }
+    return null;
   }
 
   // --- WebSocket interception (main thread) ---
@@ -28,16 +39,14 @@
       const wsUrl = args[0].toString();
 
       ws.addEventListener('message', (event: MessageEvent) => {
-        if (typeof event.data === 'string') {
-          pushFrame('ws-frame', 'incoming', event.data, wsUrl);
-        }
+        const data = stringifyWireData(event.data);
+        if (data != null) pushFrame('ws-frame', 'incoming', data, wsUrl);
       });
 
       const origSend = ws.send.bind(ws);
       ws.send = function (data: string | ArrayBufferLike | Blob | ArrayBufferView) {
-        if (typeof data === 'string') {
-          pushFrame('ws-frame', 'outgoing', data, wsUrl);
-        }
+        const dataStr = stringifyWireData(data);
+        if (dataStr != null) pushFrame('ws-frame', 'outgoing', dataStr, wsUrl);
         return origSend(data);
       };
       return ws;
@@ -57,6 +66,15 @@
         const raw = (event as MessageEvent).data;
         if (!raw) return;
 
+        // Messages emitted by the worker bootstrap below are internal to this
+        // extension. Capture them and keep them away from the page app.
+        if (typeof raw === 'object' && raw.__teamsBotInspectorFrame) {
+          const frame = raw.frame as { type: string; direction: string; data: string | null; url: string; timestamp?: number };
+          pushFrame(frame.type, frame.direction, frame.data, frame.url, frame.timestamp);
+          event.stopImmediatePropagation();
+          return;
+        }
+
         let dataStr: string;
         if (typeof raw === 'string') {
           dataStr = raw;
@@ -71,13 +89,69 @@
     });
   }
 
-  // Patch Worker constructor
+  function createWorkerBootstrapUrl(scriptUrl: string, workerType?: WorkerType): string | null {
+    try {
+      const absoluteScriptUrl = new URL(scriptUrl, window.location.href).toString();
+      const isModule = workerType === 'module';
+      const loadOriginalScript = isModule
+        ? `import(${JSON.stringify(absoluteScriptUrl)});`
+        : `importScripts(${JSON.stringify(absoluteScriptUrl)});`;
+      const bootstrap = `
+(() => {
+  const sendFrame = (type, direction, data, url) => {
+    try { self.postMessage({ __teamsBotInspectorFrame: true, frame: { type, direction, data, url, timestamp: Date.now() } }); } catch {}
+  };
+  const stringifyWireData = (data) => {
+    try {
+      if (typeof data === 'string') return data;
+      if (data instanceof ArrayBuffer) return new TextDecoder().decode(data);
+      if (ArrayBuffer.isView(data)) return new TextDecoder().decode(data);
+    } catch {}
+    return null;
+  };
+  const OriginalWebSocket = self.WebSocket;
+  if (OriginalWebSocket) {
+    const WebSocketProxy = new Proxy(OriginalWebSocket, {
+      construct(target, args) {
+        const ws = new target(...args);
+        const wsUrl = args[0]?.toString?.() || '';
+        ws.addEventListener('message', (event) => {
+          const data = stringifyWireData(event.data);
+          if (data != null) sendFrame('ws-frame', 'incoming', data, wsUrl);
+        });
+        const origSend = ws.send.bind(ws);
+        ws.send = function (data) {
+          const dataStr = stringifyWireData(data);
+          if (dataStr != null) sendFrame('ws-frame', 'outgoing', dataStr, wsUrl);
+          return origSend(data);
+        };
+        return ws;
+      },
+    });
+    Object.defineProperty(WebSocketProxy, 'prototype', { value: OriginalWebSocket.prototype, writable: false });
+    self.WebSocket = WebSocketProxy;
+  }
+  ${loadOriginalScript}
+})();`;
+      return URL.createObjectURL(new Blob([bootstrap], { type: 'text/javascript' }));
+    } catch {
+      return null;
+    }
+  }
+
+  // Patch Worker constructor. Teams runs its trouter WebSocket in workers, so
+  // listening to Worker.postMessage alone misses streaming frames. Start a tiny
+  // bootstrap worker first, patch WebSocket inside it, then load the real script.
   if (window.Worker) {
     const OriginalWorker = window.Worker;
     (window as any).Worker = new Proxy(OriginalWorker, {
       construct(target, args) {
-        const worker = new target(...(args as [string | URL]));
         const workerUrl = args[0]?.toString() || 'worker';
+        const options = args[1] as WorkerOptions | undefined;
+        const bootstrapUrl = createWorkerBootstrapUrl(workerUrl, options?.type);
+        const worker = bootstrapUrl
+          ? new target(bootstrapUrl, options)
+          : new target(...(args as [string | URL, WorkerOptions?]));
         interceptWorkerMessages(worker, workerUrl);
         return worker;
       },

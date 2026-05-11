@@ -85,6 +85,45 @@ function drainFrames(): Promise<RawFrame[]> {
   });
 }
 
+function findStreamingMetadata(obj: unknown, depth = 0): Record<string, unknown> | null {
+  if (depth > 8 || !obj || typeof obj !== 'object') return null;
+
+  const record = obj as Record<string, unknown>;
+  const metadata = record['streamingMetadata'];
+  if (metadata && typeof metadata === 'object') {
+    return metadata as Record<string, unknown>;
+  }
+
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const found = findStreamingMetadata(item, depth + 1);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  for (const value of Object.values(record)) {
+    const found = findStreamingMetadata(value, depth + 1);
+    if (found) return found;
+  }
+
+  return null;
+}
+
+function getGraphQLDedupeKey(frame: WsFrame, messageId: string): string {
+  const metadata = findStreamingMetadata(frame.parsed);
+  if (!metadata) return messageId;
+
+  const streamType = String(metadata['streamType'] ?? 'stream');
+  const streamSequence = metadata['streamSequence'];
+  const streamEndTime = metadata['streamEndTime'];
+
+  if (streamSequence != null) return `${messageId}:${streamType}:${streamSequence}`;
+  if (streamEndTime != null) return `${messageId}:${streamType}:${streamEndTime}`;
+
+  return `${messageId}:${streamType}:${frame.timestamp}`;
+}
+
 export function App() {
   const { isCapturing, loadPersistedState } = useConnectionStore();
   const { frames, addFrames, clear } = useFrameStore();
@@ -128,11 +167,13 @@ export function App() {
         // Skip typing indicators
         if (info.messageType === 'Control/Typing') continue;
 
-        // Deduplicate GraphQL worker messages across subscription channels
-        // Use messageId (unique per message) instead of content
+        // Deduplicate GraphQL worker messages across subscription channels.
+        // Streaming updates reuse the same message id, so include stream metadata
+        // in the key or we drop every follow-up chunk after the first one.
         if (frame.sourceType === 'worker-message' && info.messageId) {
-          if (seenMessages.current.has(info.messageId)) continue;
-          seenMessages.current.add(info.messageId);
+          const dedupeKey = getGraphQLDedupeKey(frame, info.messageId);
+          if (seenMessages.current.has(dedupeKey)) continue;
+          seenMessages.current.add(dedupeKey);
         }
 
         processed.push(frame);
