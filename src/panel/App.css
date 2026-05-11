@@ -596,27 +596,52 @@ body {
 
 .empty-capture-btn {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 14px 28px;
-  margin-bottom: 18px;
-  border: 1px solid var(--accent);
-  border-radius: 999px;
-  background: var(--accent);
+  justify-content: center;
+  gap: 7px;
+  width: 118px;
+  height: 118px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(244, 67, 54, 0.65);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ff837a 0%, #f44336 42%, #b71c1c 100%);
   color: white;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 120, 212, 0.22);
+  box-shadow:
+    0 12px 32px rgba(244, 67, 54, 0.28),
+    inset 0 2px 8px rgba(255, 255, 255, 0.28),
+    inset 0 -10px 18px rgba(80, 0, 0, 0.22);
+  transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
 }
 
 .empty-capture-btn:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
+  transform: translateY(-2px) scale(1.04);
+  filter: saturate(1.08) brightness(1.04);
+  box-shadow:
+    0 18px 42px rgba(244, 67, 54, 0.38),
+    0 0 0 8px rgba(244, 67, 54, 0.08),
+    inset 0 2px 10px rgba(255, 255, 255, 0.34),
+    inset 0 -10px 18px rgba(80, 0, 0, 0.22);
+}
+
+.empty-capture-btn:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow:
+    0 8px 20px rgba(244, 67, 54, 0.25),
+    inset 0 2px 6px rgba(80, 0, 0, 0.28);
 }
 
 .empty-capture-icon {
-  font-size: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(80, 0, 0, 0.25);
+  font-size: 0;
   line-height: 1;
 }
 

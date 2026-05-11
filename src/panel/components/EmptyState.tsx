@@ -6,8 +6,8 @@ export function EmptyState() {
   if (!isCapturing) {
     return (
       <div className="empty-state">
-        <button className="empty-capture-btn" onClick={() => setCapturing(true)}>
-          <span className="empty-capture-icon">&#9654;</span>
+        <button className="empty-capture-btn" onClick={() => setCapturing(true)} aria-label="Start capture">
+          <span className="empty-capture-icon" />
           Capture
         </button>
         <h2>Ready to monitor Teams traffic</h2>
