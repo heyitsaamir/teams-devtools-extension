@@ -14,6 +14,7 @@ export interface WsFrame {
   url: string;
   timestamp: number;
   matchedField?: string;
+  headers?: Record<string, string>;
 }
 
 export interface TrouterEnvelope {
@@ -117,11 +118,21 @@ export function parseTrouterFrame(raw: string): { envelope: TrouterEnvelope | nu
 /**
  * Check if a bot client ID appears in a trouter frame.
  */
+function isInvokeFrame(frame: { parsed: Record<string, unknown> | null; url?: string }): boolean {
+  if (frame.url?.includes('/invoke')) return true;
+  return Boolean(frame.parsed && typeof frame.parsed['name'] === 'string' && typeof frame.parsed['appId'] === 'string');
+}
+
+function getInvokeBotIdFromUrl(url?: string): string {
+  const match = url?.match(/\/agents\/(28:[^/?#]+)\/invoke(?:[/?#]|$)/i);
+  return match?.[1] ? normalizeBotId(match[1]) : '';
+}
+
 export function matchesBotId(frame: { parsed: Record<string, unknown> | null; rawData: string | null; envelope: TrouterEnvelope | null; url?: string }, botId: string): string | null {
   if (!botId) return null;
   const lower = botId.toLowerCase();
 
-  // Check frame URL (fetch requests to bot endpoints)
+  // Check frame URL (fetch/XHR requests to bot endpoints, including invokes)
   if (frame.url && frame.url.toLowerCase().includes(lower)) {
     return 'url';
   }
@@ -287,6 +298,11 @@ function findBotIdentifierInObject(obj: unknown, depth: number = 0): string {
  */
 export function extractBotInfo(frame: WsFrame): { id: string; name: string } | null {
   const info = extractFrameInfo(frame);
+  const invokeBotId = getInvokeBotIdFromUrl(frame.url);
+  if (invokeBotId) {
+    return { id: invokeBotId, name: `Bot ${invokeBotId.slice(0, 8)}` };
+  }
+
   let identifier = '';
   let name = '';
 
@@ -336,7 +352,7 @@ export function extractFrameInfo(frame: WsFrame): {
   messageId: string;
 } {
   if (frame.sourceType === 'fetch-request') {
-    const isInvoke = frame.url.includes('/invoke');
+    const isInvoke = isInvokeFrame(frame);
     let content = '';
     if (frame.parsed) {
       content = isInvoke

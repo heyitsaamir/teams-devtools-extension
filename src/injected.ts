@@ -2,7 +2,6 @@
  * Main-world content script that intercepts:
  * 1. WebSocket frames in the main thread
  * 2. Messages from Web Workers (trouter runs in a Worker)
- * 3. Fetch requests (outgoing user messages)
  *
  * Stores frames in a global array the DevTools panel reads via eval().
  */
@@ -114,35 +113,4 @@
       writable: false,
     });
   }
-
-  // --- Fetch interception (outgoing user messages) ---
-
-  const originalFetch = window.fetch.bind(window);
-  (window as any).fetch = async function (...args: Parameters<typeof fetch>) {
-    const [input, init] = args;
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
-    const method = init?.method?.toUpperCase() || 'GET';
-
-    if (method === 'POST' && /\/api\/chatsvc\/.*\/(messages|invoke)/.test(url)) {
-      try {
-        let bodyText: string | null = null;
-        if (init?.body) {
-          if (typeof init.body === 'string') bodyText = init.body;
-          else if (init.body instanceof Blob) bodyText = await init.body.text();
-        }
-        pushFrame('fetch-request', 'outgoing', bodyText, url);
-      } catch { /* ignore */ }
-    }
-
-    const response = await originalFetch(input, init);
-
-    if (method === 'POST' && /\/api\/chatsvc\/.*\/(messages|invoke)/.test(url)) {
-      try {
-        const clone = response.clone();
-        clone.text().then((text) => pushFrame('fetch-response', 'incoming', text, url));
-      } catch { /* ignore */ }
-    }
-
-    return response;
-  };
 })();

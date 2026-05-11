@@ -22,11 +22,13 @@ interface RawFrame {
   data: string | null;
   url: string;
   timestamp: number;
+  headers?: Record<string, string>;
 }
 
 function processRawFrame(raw: RawFrame, botId?: string): WsFrame | null {
   const rawData = raw.data;
-  if (!rawData) return null;
+  if (rawData == null) return null;
+  if (!rawData && raw.type !== 'fetch-response') return null;
 
   let parsed: Record<string, unknown> | null = null;
   let envelope: WsFrame['envelope'] = null;
@@ -67,7 +69,32 @@ function processRawFrame(raw: RawFrame, botId?: string): WsFrame | null {
     url: raw.url,
     timestamp: raw.timestamp,
     matchedField,
+    headers: raw.headers,
   };
+}
+
+function looksLikeInvokeBody(bodyText: string | null): boolean {
+  if (!bodyText) return false;
+
+  try {
+    const body = JSON.parse(bodyText) as Record<string, unknown>;
+    return typeof body['name'] === 'string' && ('appId' in body || 'value' in body || 'conversation' in body);
+  } catch {
+    return false;
+  }
+}
+
+function shouldCaptureDevtoolsNetworkRequest(url: string, method: string, bodyText: string | null): boolean {
+  if (!['POST', 'PUT', 'PATCH'].includes(method.toUpperCase())) return false;
+  return /\/api\/chatsvc\/.*\/(messages|invoke)(?:[/?#]|$)/.test(url) || looksLikeInvokeBody(bodyText);
+}
+
+function headersToRecord(headers: chrome.devtools.network.Request['request']['headers']): Record<string, string> {
+  const record: Record<string, string> = {};
+  for (const header of headers ?? []) {
+    record[header.name] = header.value;
+  }
+  return record;
 }
 
 function drainFrames(): Promise<RawFrame[]> {
@@ -128,6 +155,7 @@ export function App() {
   const { isCapturing, loadPersistedState } = useConnectionStore();
   const { frames, addFrames, clear } = useFrameStore();
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const seenNetworkRequests = useRef(new Set<string>());
   useEffect(() => {
     loadPersistedState();
   }, [loadPersistedState]);
@@ -139,6 +167,61 @@ export function App() {
 
   // Track seen message IDs to deduplicate across subscription channels
   const seenMessages = useRef(new Set<string>());
+
+  // Capture HTTP invokes from the DevTools Network stack. Some Teams invokes are
+  // not visible to injected fetch/XHR hooks, but they do appear in Network.
+  useEffect(() => {
+    if (!isCapturing) {
+      seenNetworkRequests.current.clear();
+      return;
+    }
+
+    const handleRequestFinished = (request: chrome.devtools.network.Request) => {
+      try {
+        const url = request.request.url;
+        const method = request.request.method;
+        const bodyText = request.request.postData?.text ?? null;
+        if (!shouldCaptureDevtoolsNetworkRequest(url, method, bodyText)) return;
+
+        const requestKey = `${method}:${url}:${bodyText ?? ''}`;
+        if (seenNetworkRequests.current.has(requestKey)) return;
+        seenNetworkRequests.current.add(requestKey);
+
+        const botId = useConnectionStore.getState().botId;
+        const requestFrame = processRawFrame({
+          type: 'fetch-request',
+          direction: 'outgoing',
+          data: bodyText,
+          url,
+          timestamp: new Date(request.startedDateTime).getTime() || Date.now(),
+          headers: headersToRecord(request.request.headers),
+        }, botId);
+
+        const processed: WsFrame[] = [];
+        if (requestFrame) processed.push(requestFrame);
+
+        request.getContent((content) => {
+          const responseFrame = processRawFrame({
+            type: 'fetch-response',
+            direction: 'incoming',
+            data: content || '',
+            url,
+            timestamp: Date.now(),
+            headers: headersToRecord(request.response.headers),
+          }, botId);
+
+          if (responseFrame) processed.push(responseFrame);
+          if (processed.length > 0) addFrames(processed);
+        });
+      } catch { /* ignore */ }
+    };
+
+    chrome.devtools.network.onRequestFinished.addListener(handleRequestFinished);
+
+    return () => {
+      chrome.devtools.network.onRequestFinished.removeListener(handleRequestFinished);
+    };
+  }, [isCapturing, addFrames]);
 
   // Poll for frames when capturing
   useEffect(() => {

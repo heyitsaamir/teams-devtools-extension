@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { useFrameStore, extractFrameInfo, type WsFrame } from '../stores/FrameStore';
 import { JsonTree } from './JsonTree';
 
-type ViewMode = 'summary' | 'full' | 'raw' | 'diff';
+type ViewMode = 'summary' | 'full' | 'raw' | 'headers' | 'diff';
 
 type DiffRow =
   | { type: 'same'; left: string; right: string }
@@ -168,11 +168,14 @@ export function FrameDetail() {
 
   const info = extractFrameInfo(frame);
   const summary = extractSummary(frame.parsed);
+  const hasHeaders = Boolean(frame.headers && Object.keys(frame.headers).length > 0);
 
   const handleCopy = async () => {
     let text: string;
     if (viewMode === 'diff' && canDiff) {
       text = `${getFrameDiffText(compareFrames[0])}\n\n--- compared with ---\n\n${getFrameDiffText(compareFrames[1])}`;
+    } else if (viewMode === 'headers' && hasHeaders) {
+      text = JSON.stringify(frame.headers, null, 2);
     } else if (viewMode === 'summary' && summary) {
       text = JSON.stringify(summary, null, 2);
     } else if (viewMode === 'full' && frame.parsed) {
@@ -225,6 +228,14 @@ export function FrameDetail() {
               Raw
             </button>
             <button
+              className={viewMode === 'headers' ? 'active' : ''}
+              onClick={() => hasHeaders && setViewMode('headers')}
+              disabled={!hasHeaders}
+              title={hasHeaders ? 'Show HTTP headers' : 'No captured headers for this frame'}
+            >
+              Headers
+            </button>
+            <button
               className={viewMode === 'diff' ? 'active' : ''}
               onClick={() => canDiff && setViewMode('diff')}
               disabled={!canDiff}
@@ -246,6 +257,8 @@ export function FrameDetail() {
       <div className="detail-content">
         {viewMode === 'diff' && canDiff ? (
           <DiffView leftFrame={compareFrames[0]} rightFrame={compareFrames[1]} />
+        ) : viewMode === 'headers' && hasHeaders ? (
+          <JsonTree data={frame.headers!} />
         ) : viewMode === 'summary' && summary ? (
           <JsonTree data={summary} />
         ) : viewMode === 'full' && frame.parsed ? (
