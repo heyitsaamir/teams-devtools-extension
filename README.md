@@ -43,6 +43,21 @@ It is useful when you want to quickly see:
 
 ## Install locally
 
+### Option 1: use a release build
+
+1. Download the latest `teams-devtools-extension-*.zip` from [Releases](https://github.com/heyitsaamir/teams-devtools-extension/releases).
+2. Unzip it somewhere you can keep around, for example `~/Extensions/teams-devtools-extension`.
+3. Open `edge://extensions` or `chrome://extensions`.
+4. Turn on **Developer mode**.
+5. Click **Load unpacked**.
+6. Select the unzipped extension folder.
+7. Open [Teams](https://teams.cloud.microsoft/) in the browser.
+8. Open DevTools.
+9. Select the **Teams Bot** tab.
+10. Click **Capture**.
+
+### Option 2: build from source
+
 ```bash
 git clone https://github.com/heyitsaamir/teams-devtools-extension.git
 cd teams-devtools-extension
@@ -50,16 +65,7 @@ npm install
 npm run build
 ```
 
-Then load the extension:
-
-1. Open `edge://extensions` or `chrome://extensions`.
-2. Turn on **Developer mode**.
-3. Click **Load unpacked**.
-4. Select the generated `dist/` folder.
-5. Open [Teams](https://teams.cloud.microsoft/) in the browser.
-6. Open DevTools.
-7. Select the **Teams Bot** tab.
-8. Click **Capture**.
+Then load the generated `dist/` folder with **Load unpacked** from `edge://extensions` or `chrome://extensions`.
 
 > Extension scripts are injected when the Teams page loads. If the panel looks empty, reload the extension, refresh the Teams tab, reopen DevTools, and click **Capture**.
 
