@@ -6,6 +6,10 @@ interface BotSummary {
   count: number;
 }
 
+function isFallbackBotName(name: string): boolean {
+  return !name || name === 'Unknown bot' || /^Bot [0-9a-f-]{4,}$/i.test(name);
+}
+
 export function BotStrip() {
   const { frames, botFilter, setBotFilter } = useFrameStore();
   const bots = new Map<string, BotSummary>();
@@ -17,7 +21,9 @@ export function BotStrip() {
     const existing = bots.get(bot.id);
     if (existing) {
       existing.count += 1;
-      if (existing.name === 'Unknown bot' && bot.name) existing.name = bot.name;
+      if (isFallbackBotName(existing.name) && !isFallbackBotName(bot.name)) {
+        existing.name = bot.name;
+      }
     } else {
       bots.set(bot.id, { ...bot, count: 1 });
     }
