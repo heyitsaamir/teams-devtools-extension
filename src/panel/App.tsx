@@ -23,6 +23,18 @@ interface RawFrame {
   url: string;
   timestamp: number;
   headers?: Record<string, string>;
+  httpMethod?: string;
+  statusCode?: number;
+}
+
+function isNoisyFrame(raw: RawFrame, parsed: Record<string, unknown> | null): boolean {
+  if (/^wss:\/\/[^/]*augloop\.office\.com/i.test(raw.url)) return true;
+
+  const header = parsed?.['H_'] as Record<string, unknown> | undefined;
+  const type = header?.['T_'];
+  if (typeof type === 'string' && type.startsWith('AugLoop_')) return true;
+
+  return false;
 }
 
 function processRawFrame(raw: RawFrame, botId?: string): WsFrame | null {
@@ -54,6 +66,8 @@ function processRawFrame(raw: RawFrame, botId?: string): WsFrame | null {
     try { parsed = JSON.parse(rawData); } catch { /* not JSON */ }
   }
 
+  if (isNoisyFrame(raw, parsed)) return null;
+
   const trimmedBotId = botId?.trim();
   const candidate = { parsed, rawData, envelope, url: raw.url };
   const matchedField = trimmedBotId ? matchesBotId(candidate, trimmedBotId) : 'all-traffic';
@@ -70,6 +84,8 @@ function processRawFrame(raw: RawFrame, botId?: string): WsFrame | null {
     timestamp: raw.timestamp,
     matchedField,
     headers: raw.headers,
+    httpMethod: raw.httpMethod,
+    statusCode: raw.statusCode,
   };
 }
 
@@ -195,6 +211,7 @@ export function App() {
           url,
           timestamp: new Date(request.startedDateTime).getTime() || Date.now(),
           headers: headersToRecord(request.request.headers),
+          httpMethod: method,
         }, botId);
 
         const processed: WsFrame[] = [];
@@ -208,6 +225,8 @@ export function App() {
             url,
             timestamp: Date.now(),
             headers: headersToRecord(request.response.headers),
+            httpMethod: method,
+            statusCode: request.response.status,
           }, botId);
 
           if (responseFrame) processed.push(responseFrame);

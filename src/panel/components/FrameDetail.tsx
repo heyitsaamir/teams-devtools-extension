@@ -197,6 +197,8 @@ export function FrameDetail() {
           </span>
           <span className="detail-event">{info.resourceType}</span>
           {info.senderName && <span className="detail-sender">{info.senderName}</span>}
+          {frame.httpMethod && <span className="detail-method">{frame.httpMethod}</span>}
+          {frame.statusCode != null && <span className="detail-status">{frame.statusCode}</span>}
           <span className="detail-time">
             {format(new Date(frame.timestamp), 'HH:mm:ss.SSS')}
           </span>

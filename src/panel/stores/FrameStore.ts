@@ -15,6 +15,8 @@ export interface WsFrame {
   timestamp: number;
   matchedField?: string;
   headers?: Record<string, string>;
+  httpMethod?: string;
+  statusCode?: number;
 }
 
 export interface TrouterEnvelope {
@@ -249,13 +251,15 @@ function extractGraphQLMessage(parsed: Record<string, unknown>): {
 }
 
 function normalizeBotId(value: string): string {
-  const botPrefixMatch = value.match(/28:([^@\s;"'<>]+)/i);
+  const cleaned = value.trim().replace(/[\\/?#]+$/g, '');
+
+  const botPrefixMatch = cleaned.match(/28:([^@\s;"'<>\\/?#]+)/i);
   if (botPrefixMatch?.[1]) return botPrefixMatch[1];
 
-  const conversationBotMatch = value.match(/_([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})@/i);
+  const conversationBotMatch = cleaned.match(/_([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})@/i);
   if (conversationBotMatch?.[1]) return conversationBotMatch[1];
 
-  return value;
+  return cleaned;
 }
 
 function isBotIdentifier(value: string): boolean {
@@ -353,18 +357,27 @@ export function extractFrameInfo(frame: WsFrame): {
 } {
   if (frame.sourceType === 'fetch-request') {
     const isInvoke = isInvokeFrame(frame);
+    const method = frame.httpMethod?.toUpperCase() || '';
     let content = '';
+    let messageId = '';
     if (frame.parsed) {
       content = isInvoke
         ? (frame.parsed['name'] as string) || 'invoke'
         : (frame.parsed['content'] as string) || '';
+      messageId = (frame.parsed['clientmessageid'] as string) || (frame.parsed['clientMessageId'] as string) || '';
     }
-    return { resourceType: isInvoke ? 'Invoke' : 'SendMessage', messageType: isInvoke ? 'Action' : 'Text', senderName: 'You', content, isFromBot: false, messageId: '' };
+
+    const resourceType = isInvoke ? `${method || 'HTTP'} Invoke` : `${method || 'HTTP'} Message`;
+
+    return { resourceType, messageType: isInvoke ? 'Action' : method || 'Text', senderName: 'You', content, isFromBot: false, messageId };
   }
 
   if (frame.sourceType === 'fetch-response') {
     const isInvoke = frame.url.includes('/invoke');
-    return { resourceType: isInvoke ? 'InvokeResponse' : 'Response', messageType: isInvoke ? 'Action' : '', senderName: 'Bot', content: '', isFromBot: true, messageId: '' };
+    const method = frame.httpMethod?.toUpperCase() || 'HTTP';
+    const status = frame.statusCode ? `${frame.statusCode} ` : '';
+    const resourceType = isInvoke ? `${status}${method} Invoke Response` : `${status}${method} Message Response`;
+    return { resourceType, messageType: isInvoke ? 'Action' : method, senderName: 'Bot', content: '', isFromBot: true, messageId: '' };
   }
 
   if (!frame.parsed) {
@@ -436,7 +449,7 @@ function getFrameClientMessageId(frame: WsFrame): string {
 }
 
 function isOutgoingSendMessage(frame: WsFrame): boolean {
-  return frame.sourceType === 'fetch-request' && extractFrameInfo(frame).resourceType === 'SendMessage';
+  return frame.sourceType === 'fetch-request' && !isInvokeFrame(frame) && Boolean(getFrameClientMessageId(frame));
 }
 
 function isCurrentUserSubscriptionEcho(frame: WsFrame): boolean {

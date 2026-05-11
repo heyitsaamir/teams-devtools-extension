@@ -500,6 +500,17 @@ body {
   color: var(--text-primary);
 }
 
+.detail-method,
+.detail-status {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 10px;
+}
+
 .detail-time {
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
   font-size: 11px;
