@@ -20,12 +20,26 @@ Teams DevTools Extension adds a **Teams Bot** tab to Chrome/Edge DevTools. Open 
 It is useful when you want to quickly see:
 
 - incoming and outgoing bot messages
-- Teams message events such as `NewMessage` and `MessageUpdate`
+- Teams message events such as `NewMessage`, `PartialMessageUpdate`, and `MessageUpdate`
+- streaming bot replies grouped by message id
+- side-by-side diffs between two selected message events
 - parsed message summaries
 - full structured payloads
 - raw captured traffic when you need the gnarly bits
 
 ![Teams DevTools Extension screenshot](docs/assets/screenshot.png)
+
+### Streaming update hierarchy
+
+Streaming replies are grouped under the same message id, so you can follow the whole lifecycle from `NewMessage` through each `PartialMessageUpdate` and final `MessageUpdate`.
+
+![Streaming update hierarchy](docs/assets/updates-hierarchy.png)
+
+### Message diff view
+
+Cmd/Ctrl-click two message events to enable the **Diff** tab and compare their parsed summaries side by side.
+
+![Message diff view](docs/assets/diff-view.png)
 
 ## Demo
 
@@ -38,7 +52,9 @@ It is useful when you want to quickly see:
 - **Direction filters** — separate incoming and outgoing traffic.
 - **Event filters** — narrow down noisy Teams events.
 - **Search** — find content inside captured frames.
-- **Summary, full, and raw views** — start readable, dive deep when needed.
+- **Streaming hierarchy** — group related updates by message id.
+- **Diff view** — compare two selected message events side by side.
+- **Summary, full, raw, and diff views** — start readable, dive deep when needed.
 - **Local-first** — captured traffic is displayed locally in your browser.
 
 ## Install locally
